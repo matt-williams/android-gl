@@ -53,8 +53,6 @@ public class Projection implements Cloneable {
         // Viewing angles are full angles (not half angles) - to get the left-right distance, we need to halve the angle (so that we have 2 right-angled triangles), take the tangent and then double the result.
         float leftRight = (float)Math.tan(horizViewAngle / 2 * Math.PI / 180) * 2 * NEAR;
         float bottomTop = (float)Math.tan(vertViewAngle / 2 * Math.PI / 180) * 2 * NEAR;
-        // TODO: Understand why the Maths above doesn't work!
-        bottomTop = leftRight * 720/1280;
         setProjection(-leftRight / 2, leftRight / 2, -bottomTop / 2, bottomTop / 2, NEAR, FAR);
     }
 

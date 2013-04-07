@@ -11,7 +11,8 @@ import android.opengl.GLES11Ext;
 public class CameraTexture extends Texture implements OnFrameAvailableListener {
 
     private final SurfaceTexture mSurfaceTexture;
-    private volatile boolean mFrameAvailable = false;
+    // We need to count the number of frames available, not just record a flag.  Otherwise SurfaceView processing seems to lock up.
+    private volatile int mFramesAvailable = 0;
 
     public CameraTexture(Camera camera) {
         super(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
@@ -26,16 +27,16 @@ public class CameraTexture extends Texture implements OnFrameAvailableListener {
     }
 
     public void onFrameAvailable(SurfaceTexture arg0) {
-        mFrameAvailable = true;
+        mFramesAvailable++;
     }
 
     @Override
     public void use(int channel) {
-        if (mFrameAvailable) {
+        while (mFramesAvailable > 0) {
             mSurfaceTexture.updateTexImage();
-            mSurfaceTexture.getTransformMatrix(mTransformMatrix);
-            mFrameAvailable = false;
+            mFramesAvailable--;
         }
+        mSurfaceTexture.getTransformMatrix(mTransformMatrix);
         super.use(channel);
     }
 
