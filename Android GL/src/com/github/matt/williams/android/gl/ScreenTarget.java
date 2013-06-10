@@ -1,5 +1,6 @@
 package com.github.matt.williams.android.gl;
 
+import android.graphics.Rect;
 import android.opengl.GLES20;
 
 public class ScreenTarget {
@@ -54,5 +55,9 @@ public class ScreenTarget {
 
     public float toGlY(float screenY) {
         return 1 - (screenY - mY) * 2 / mHeight;
+    }
+
+    public Rect getRect() {
+        return new Rect(mX, mY, mX + mWidth, mY + mHeight);
     }
 }
