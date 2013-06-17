@@ -57,9 +57,15 @@ public class Projection implements Cloneable {
     }
 
     public void setProjection(float left, float right, float bottom, float top, float near, float far) {
-        Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
+        float[] projectionMatrix = new float[16];
+        Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
         // We rotate the projection matrix about the z axis (into the display) to switch from portrait to landscape mode.
-        Matrix.rotateM(mProjectionMatrix, 0, 90, 0, 0, 1);
+        Matrix.rotateM(projectionMatrix, 0, 90, 0, 0, 1);
+        setProjectionMatrix(projectionMatrix);
+    }
+
+    public void setProjectionMatrix(float[] projectionMatrix) {
+        System.arraycopy(projectionMatrix, 0, mProjectionMatrix, 0, 16);
         Matrix.invertM(mInverseProjectionMatrix, 0, mProjectionMatrix, 0);
         multiplyMatrices();
     }
