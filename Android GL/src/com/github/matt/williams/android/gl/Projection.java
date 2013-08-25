@@ -21,7 +21,7 @@ public class Projection implements Cloneable {
         Matrix.setIdentityM(mInverseViewMatrix, 0);
     }
 
-    public Projection(float[] vertices, int aOff, int bOff, int cOff, int dOff) {
+    public Projection(float[] vertices, int aOff, int bOff, int cOff, int dOff, float rotation) {
         // Construct the rotation matrix.
         float[] temp = new float[16];
         extractUnitVector(temp, 0, vertices, aOff, bOff, cOff, dOff);
@@ -46,21 +46,21 @@ public class Projection implements Cloneable {
         float bottom = ((aY < bY) ? aY : bY) * NEAR / z;
         float top = ((cY > dY) ? cY : dY) * NEAR / z;
 
-        setProjection(left, right, bottom, top, NEAR, FAR);
+        setProjection(left, right, bottom, top, NEAR, FAR, rotation);
     }
 
-    public void setProjection(float horizViewAngle, float vertViewAngle) {
+    public void setProjection(float horizViewAngle, float vertViewAngle, float rotation) {
         // Viewing angles are full angles (not half angles) - to get the left-right distance, we need to halve the angle (so that we have 2 right-angled triangles), take the tangent and then double the result.
         float leftRight = (float)Math.tan(horizViewAngle / 2 * Math.PI / 180) * 2 * NEAR;
         float bottomTop = (float)Math.tan(vertViewAngle / 2 * Math.PI / 180) * 2 * NEAR;
-        setProjection(-leftRight / 2, leftRight / 2, -bottomTop / 2, bottomTop / 2, NEAR, FAR);
+        setProjection(-leftRight / 2, leftRight / 2, -bottomTop / 2, bottomTop / 2, NEAR, FAR, rotation);
     }
 
-    public void setProjection(float left, float right, float bottom, float top, float near, float far) {
+    public void setProjection(float left, float right, float bottom, float top, float near, float far, float rotation) {
         float[] projectionMatrix = new float[16];
         Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
-        // We rotate the projection matrix about the z axis (into the display) to switch from portrait to landscape mode.
-        Matrix.rotateM(projectionMatrix, 0, 90, 0, 0, 1);
+        // We rotate the projection matrix about the z axis (into the display) to switch between portrait and landscape mode.
+        Matrix.rotateM(projectionMatrix, 0, rotation, 0, 0, 1);
         setProjectionMatrix(projectionMatrix);
     }
 
