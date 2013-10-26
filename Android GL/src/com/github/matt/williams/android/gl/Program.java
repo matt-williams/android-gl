@@ -1,8 +1,10 @@
 package com.github.matt.williams.android.gl;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,11 +12,12 @@ import android.opengl.GLES20;
 
 public class Program {
     private static final int BYTES_PER_FLOAT = Float.SIZE / Byte.SIZE;
-    private int mId;
+    private static final int BYTES_PER_SHORT = Short.SIZE / Byte.SIZE;
+    private final int mId;
     private VertexShader mVertexShader;
     private FragmentShader mFragmentShader;
-    private Map<String,ByteBuffer> mBuffers = new HashMap<String,ByteBuffer>();
-    
+    private final Map<String,ByteBuffer> mBuffers = new HashMap<String,ByteBuffer>();
+
     public Program(VertexShader vertexShader, FragmentShader fragmentShader) {
         mId = GLES20.glCreateProgram();
         Utils.checkErrors("glCreateProgram");
@@ -22,12 +25,13 @@ public class Program {
         setFragmentShader(fragmentShader);
     }
 
+    @Override
     protected void finalize() {
         if (mId != 0) {
             GLES20.glDeleteProgram(mId);
         }
     }
-    
+
     public void setVertexShader(VertexShader vertexShader) {
         mVertexShader = vertexShader;
         GLES20.glAttachShader(mId, vertexShader.getId());
@@ -41,7 +45,7 @@ public class Program {
         Utils.checkErrors("glAttachShader");
         link();
     }
-    
+
     public void setUniform(String name, float x) {
         int oldId = pushProgram();
         GLES20.glUniform1f(GLES20.glGetUniformLocation(mId, name), x);
@@ -70,7 +74,7 @@ public class Program {
         int oldId = pushProgram();
         GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(mId, name), 1, false, matrix, 0);
         popProgram(oldId);
-        
+
     }
     public void setUniform(String name, int value) {
         int oldId = pushProgram();
@@ -80,16 +84,32 @@ public class Program {
     }
 
     public void setVertexAttrib(String name, float[] values, int valueSize) {
+        setVertexAttrib(name, wrap(name, values), valueSize);
+    }
+
+    public void setVertexAttrib(String name, FloatBuffer values, int valueSize) {
+        setVertexAttrib(name, values, GLES20.GL_FLOAT, valueSize, BYTES_PER_FLOAT);
+    }
+
+    public void setVertexAttrib(String name, short[] values, int valueSize) {
+        setVertexAttrib(name, wrap(name, values), valueSize);
+    }
+
+    public void setVertexAttrib(String name, ShortBuffer values, int valueSize) {
+        setVertexAttrib(name, values, GLES20.GL_SHORT, valueSize, BYTES_PER_SHORT);
+    }
+
+    public void setVertexAttrib(String name, Buffer values, int type, int valueSize, int bytesPerType) {
         int oldId = pushProgram();
         int handle = GLES20.glGetAttribLocation(mId, name);
         Utils.checkErrors("glGetAttribLocation");
-        GLES20.glVertexAttribPointer(handle, valueSize, GLES20.GL_FLOAT, false, valueSize * BYTES_PER_FLOAT, wrap(name, values));
+        GLES20.glVertexAttribPointer(handle, valueSize, type, false, valueSize * bytesPerType, values);
         Utils.checkErrors("glVertexAttribPointer");
         GLES20.glEnableVertexAttribArray(handle);
         Utils.checkErrors("glEnableVertexAttribArray");
         popProgram(oldId);
     }
-    
+
     public void use() {
         GLES20.glUseProgram(mId);
     }
@@ -97,7 +117,7 @@ public class Program {
     public int getId() {
         return mId;
     }
-    
+
     private void link() {
         if ((mVertexShader != null) && (mFragmentShader != null)) {
             GLES20.glLinkProgram(mId);
@@ -110,7 +130,7 @@ public class Program {
             }
         }
     }
- 
+
     private int pushProgram() {
         int[] oldIds = new int[1];
         GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, oldIds, 0);
@@ -119,12 +139,12 @@ public class Program {
         Utils.checkErrors("glUseProgram");
         return oldIds[0];
     }
-    
+
     private void popProgram(int oldId) {
-        GLES20.glUseProgram(oldId);        
+        GLES20.glUseProgram(oldId);
         Utils.checkErrors("glUseProgram");
     }
-    
+
     private FloatBuffer wrap(String name, float[] data) {
         ByteBuffer byteBuffer = mBuffers.get(name);
         if ((byteBuffer == null) ||
@@ -134,6 +154,19 @@ public class Program {
             mBuffers.put(name, byteBuffer);
         }
         FloatBuffer buffer = byteBuffer.asFloatBuffer().put(data);
+        buffer.position(0);
+        return buffer;
+    }
+
+    private ShortBuffer wrap(String name, short[] data) {
+        ByteBuffer byteBuffer = mBuffers.get(name);
+        if ((byteBuffer == null) ||
+            (byteBuffer.capacity() != data.length * BYTES_PER_SHORT))
+        {
+            byteBuffer = ByteBuffer.allocateDirect(data.length * BYTES_PER_SHORT).order(ByteOrder.nativeOrder());
+            mBuffers.put(name, byteBuffer);
+        }
+        ShortBuffer buffer = byteBuffer.asShortBuffer().put(data);
         buffer.position(0);
         return buffer;
     }
